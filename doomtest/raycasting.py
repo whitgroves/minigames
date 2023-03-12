@@ -13,15 +13,15 @@ class Raycasting:
         player_x, player_y = self.game.player.loc
         x_loc, y_loc = self.game.player.map_loc
         ray_angle = self.game.player.angle - HALF_FOV + 0.0001  # avoids div/0 errors
-        for j in range(NUM_RAYS):
-            cos_a = math.cos(ray_angle)     # used to find movement along x-axis
-            sin_a = math.sin(ray_angle)     # used to find movement along y-axis
+        for ray in range(NUM_RAYS):
+            cos_a = math.cos(ray_angle)  # used to find movement along x-axis
+            sin_a = math.sin(ray_angle)  # used to find movement along y-axis
             
             # vertical intersections
             # use the ray angle and the player's location to derive the distance between
             # the player and the edge of the next vertical boundary along that ray by 
-            # drawing triangles along its length between each column of blocks and using
-            # basic trig to calculate the total length of the triangles' hypotenii
+            # drawing triangles along its length between each column of blocks, then use
+            # trigonometry to calculate the total length of the triangles' hypotenii
             vert_x, vert_dx = (x_loc + 1, 1) if cos_a > 0 else (x_loc - 1e-6, -1)
             vert_depth = (vert_x - player_x) / cos_a    # div/0 hazard 1
             vert_y = player_y + vert_depth * sin_a
@@ -51,13 +51,23 @@ class Raycasting:
                 horz_y += horz_dy
                 horz_depth += horz_delta
             
-            # hit distance
-            depth = min(vert_depth, horz_depth)
+            # 3D projection
+            # the FOV creates a triangle that is used to derive the distance along depth
+            # where the player's view should be projected onto; that distance is then
+            # used to scale the height of the object (i.e., wall) hit by the ray to the
+            # player's view via similar triangles when FOV is viewed along the "z"-axis.
+            # To simply the calculation, the actual wall height is always 1.
+            depth = min(vert_depth, horz_depth) 
+            depth *= math.cos(self.game.player.angle - ray_angle)   # adjust for fishbowl effect
+            proj_height = SCREEN_DIST / (depth + 0.0001)            # div/0 hazard 3
+            color = [255 / (1 + depth ** 5 * 0.00002)] * 3          # dim things farther away
+            pygame.draw.rect(self.game.screen, color,
+                            (ray * SCALE, HALF_HEIGHT - proj_height // 2, SCALE, proj_height))
             
-            # debug
-            pygame.draw.line(self.game.screen, 'yellow', (100 * player_x, 100 * player_y),
-                            (100 * player_x + 100 * depth * cos_a, 
-                             100 * player_y + 100 * depth * sin_a), 2)
+            # 2D display
+            # pygame.draw.line(self.game.screen, 'yellow', (100 * player_x, 100 * player_y),
+            #                 (100 * player_x + 100 * depth * cos_a, 
+            #                  100 * player_y + 100 * depth * sin_a), 2)
             
             # increment to end loop
             ray_angle += DELTA_ANGLE

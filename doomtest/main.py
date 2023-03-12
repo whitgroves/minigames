@@ -27,8 +27,8 @@ class Game:
         
     def draw(self) -> None:
         self.screen.fill('black')
-        self.map.draw()
-        self.player.draw()
+        # self.map.draw()
+        # self.player.draw()
         
     def check_events(self) -> None:
         for event in pygame.event.get():
