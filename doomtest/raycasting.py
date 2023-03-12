@@ -5,13 +5,38 @@ from settings import *
 class Raycasting:
     def __init__(self, game) -> None:
         self.game = game
-        
+        self.raycast_result = []
+        self.render_objects = []
+        self.textures = self.game.object_renderer.wall_textures
+    
+    # uses raycast data to slice up textures and provide image scaling data for the object renderer
     def get_render_objects(self) -> None:
-        pass
+        self.render_objects = []
+        for ray, values in enumerate(self.raycast_result):
+            depth, proj_height, texture, offset = values  # TODO: create data class for this
+            
+            if proj_height < HEIGHT:
+                wall_column = self.textures[texture].subsurface(
+                    offset * (TEXTURE_SIZE - SCALE), 0, SCALE, TEXTURE_SIZE
+                )
+                wall_column = pygame.transform.scale(wall_column, (SCALE, proj_height))
+                wall_loc = (ray * SCALE, HALF_HEIGHT - proj_height // 2)
+            else:
+                texture_height = TEXTURE_SIZE * HEIGHT / proj_height  # edge case for close distances
+                wall_column = self.textures[texture].subsurface(
+                    offset * (TEXTURE_SIZE - SCALE), HALF_TEXTURE_SIZE - texture_height // 2,
+                    SCALE, texture_height
+                )
+                wall_column = pygame.transform.scale(wall_column, (SCALE, HEIGHT))
+                wall_loc = (ray * SCALE, 0)
+            
+            self.render_objects.append((depth, wall_column, wall_loc))
         
     def raycast(self) -> None:
         player_x, player_y = self.game.player.loc
         x_loc, y_loc = self.game.player.map_loc
+        vert_texture, horz_texture = 1, 1
+        self.raycast_result = []
         ray_angle = self.game.player.angle - HALF_FOV + 0.0001  # avoids div/0 errors
         for ray in range(NUM_RAYS):
             cos_a = math.cos(ray_angle)  # used to find movement along x-axis
@@ -28,8 +53,9 @@ class Raycasting:
             vert_delta = vert_dx / cos_a
             vert_dy = vert_delta * sin_a
             for i in range(MAX_DEPTH):
-                map_loc = int(vert_x), int(vert_y)
-                if map_loc in self.game.map.world_map:
+                vert_loc = int(vert_x), int(vert_y)
+                if vert_loc in self.game.map.world_map:
+                    vert_texture = self.game.map.world_map[vert_loc]
                     break
                 vert_x += vert_dx
                 vert_y += vert_dy
@@ -44,34 +70,32 @@ class Raycasting:
             horz_delta = horz_dy / sin_a
             horz_dx = horz_delta * cos_a
             for i in range(MAX_DEPTH):
-                map_loc = int(horz_x), int(horz_y)
-                if map_loc in self.game.map.world_map:
+                horz_loc = int(horz_x), int(horz_y)
+                if horz_loc in self.game.map.world_map:
+                    horz_texture = self.game.map.world_map[horz_loc]
                     break
                 horz_x += horz_dx
                 horz_y += horz_dy
                 horz_depth += horz_delta
             
-            # 3D projection
-            # the FOV creates a triangle that is used to derive the distance along depth
-            # where the player's view should be projected onto; that distance is then
-            # used to scale the height of the object (i.e., wall) hit by the ray to the
-            # player's view via similar triangles when FOV is viewed along the "z"-axis.
-            # To simply the calculation, the actual wall height is always 1.
-            depth = min(vert_depth, horz_depth) 
-            depth *= math.cos(self.game.player.angle - ray_angle)   # adjust for fishbowl effect
-            proj_height = SCREEN_DIST / (depth + 0.0001)            # div/0 hazard 3
-            color = [255 / (1 + depth ** 5 * 0.00002)] * 3          # dim things farther away
-            pygame.draw.rect(self.game.screen, color,
-                            (ray * SCALE, HALF_HEIGHT - proj_height // 2, SCALE, proj_height))
-            
-            # 2D display
-            # pygame.draw.line(self.game.screen, 'yellow', (100 * player_x, 100 * player_y),
-            #                 (100 * player_x + 100 * depth * cos_a, 
-            #                  100 * player_y + 100 * depth * sin_a), 2)
-            
-            # increment to end loop
+            # 3D projetion data
+            # use the (screen) WIDTH and FOV settings to derive the screen's distance from the 
+            # player, then use that distance and the hit depth to determine the scale of the wall 
+            # projection, which texture to render, and the texture offset for each vertical slice
+            if vert_depth < horz_depth:
+                hit_depth, texture = vert_depth, vert_texture
+                vert_y %= 1
+                offset = vert_y if cos_a > 0 else (1 - vert_y)
+            else:
+                hit_depth, texture = horz_depth, horz_texture
+                horz_x %= 1
+                offset = (1 - horz_x) if sin_a > 0 else horz_x
+            hit_depth *= math.cos(self.game.player.angle - ray_angle) # adjust for fishbowl effect
+            proj_height = SCREEN_DIST / (hit_depth + 0.0001)          # div/0 hazard 3
+
+            # store hit data & move to next ray
+            self.raycast_result.append((hit_depth, proj_height, texture, offset))
             ray_angle += DELTA_ANGLE
-            
     
     def update(self) -> None:
         self.raycast()
