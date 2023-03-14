@@ -23,7 +23,8 @@ class ObjectRenderer:
         pygame.draw.rect(self.screen, FLOOR_COLOR, (0, HALF_HEIGHT, WIDTH, HALF_HEIGHT))
         
     def render_game_objects(self):
-        render_objects = self.game.raycasting.render_objects
+        # sort by depth (first index), starting with objects farthest away
+        render_objects = sorted(self.game.raycasting.render_objects, key=lambda obj: obj[0], reverse=True)
         for depth, image, loc in render_objects:
             self.screen.blit(image, loc)
         
