@@ -1,0 +1,32 @@
+from object_sprite import *
+
+class Weapon(AnimatedObjectSprite):
+    def __init__(self, game, file, scale, animation_time):
+        super().__init__(game=game, file=file, loc=(0, 0), scale=scale, animation_time=animation_time)
+        self.images = deque(
+            [pygame.transform.smoothscale(img, (self.image.get_width() * scale, self.image.get_height() * scale))
+             for img in self.images])
+        self.weapon_loc = (HALF_WIDTH - self.images[0].get_width() // 2, HEIGHT - self.images[0].get_height())
+        self.reloading = False
+        self.num_images = len(self.images)
+        self.frame_num = 0
+        self.damage = 50
+        
+    def animate_shot(self):
+        if self.reloading:
+            self.game.player.shooting = False
+            if self.animation_trigger:
+                self.images.rotate(-1)  # TODO why?
+                self.image = self.images[0]
+                self.frame_num += 1
+                if self.frame_num == self.num_images:
+                    self.reloading = False
+                    self.frame_num = 0
+        
+    def draw(self):
+        self.game.screen.blit(self.images[0], self.weapon_loc)
+        
+    def update(self):
+        self.check_animation_time()
+        self.animate_shot()
+        

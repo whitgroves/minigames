@@ -7,7 +7,15 @@ class Player:
         self.game = game
         self.x, self.y = PLAYER_LOC
         self.angle = PLAYER_ANGLE
+        self.shooting = False
         
+    def fire_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1 and not self.shooting and not self.game.weapon.reloading:
+                self.game.sound.shotgun.play()
+                self.shooting = True
+                self.game.weapon.reloading = True
+                
     def movement(self) -> None:
         sin_a = math.sin(self.angle)
         cos_a = math.cos(self.angle)
@@ -32,12 +40,7 @@ class Player:
         
         self.safe_move(dx, dy)
         
-        # delta_rot = PLAYER_ROT_SPEED * self.game.delta_time
-        # if keys[pygame.K_LEFT]:
-        #     self.angle -= delta_rot
-        # if keys[pygame.K_RIGHT]:
-        #     self.angle += delta_rot
-        self.angle %= math.tau  # bound angle between 0 and tau (== 2 * pi)
+        self.angle %= math.tau  # keep angle between 0 and tau (== 2 * pi)
     
     def no_collision(self, x:int, y:int) -> bool:
         return (x, y) not in self.game.map.world_map
@@ -50,10 +53,12 @@ class Player:
             self.y += dy
     
     def draw(self) -> None:
+        pygame.draw.line(self.game.screen, 'yellow', (self.x * 100, self.y * 100),
+                        (self.x * 100 + WIDTH * math.cos(self.angle),
+                         self.y * 100 + WIDTH * math.sin(self.angle)), 2)
         pygame.draw.circle(self.game.screen, 'green', (self.x * 100, self.y * 100), 15)
         
     def mouse_input(self):
-        # TODO: understand how pygame.mouse works
         x, y = pygame.mouse.get_pos()
         if x < MOUSE_BORDER_LEFT or x > MOUSE_BORDER_RIGHT:
             pygame.mouse.set_pos([HALF_WIDTH, HALF_HEIGHT])
