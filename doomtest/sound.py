@@ -8,4 +8,8 @@ class Sound:
         self.base_path = 'doomtest/sounds/'
         assert os.path.exists(self.base_path)
         self.shotgun = pygame.mixer.Sound(os.path.join(self.base_path, 'shotgun.wav'))
-        
+        self.npc_pain = pygame.mixer.Sound(os.path.join(self.base_path, 'npc_pain.wav'))
+        self.npc_death = pygame.mixer.Sound(os.path.join(self.base_path, 'npc_death.wav'))
+        self.npc_attack = pygame.mixer.Sound(os.path.join(self.base_path, 'npc_attack.wav'))
+        self.player_pain = pygame.mixer.Sound(os.path.join(self.base_path, 'player_pain.wav'))
+
