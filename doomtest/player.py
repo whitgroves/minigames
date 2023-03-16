@@ -8,6 +8,33 @@ class Player:
         self.x, self.y = PLAYER_LOC
         self.angle = PLAYER_ANGLE
         self.shooting = False
+        self.health = PLAYER_MAX_HEALTH
+        self.rel = 0
+        self.health_recovery_delay = 700
+        self.prev_time = pygame.time.get_ticks()
+        
+    def recover_health(self):
+        if self.check_health_recovery() and self.health < PLAYER_MAX_HEALTH:
+            self.health += 1
+        
+    def check_health_recovery(self) -> bool:
+        now = pygame.time.get_ticks()
+        if now - self.prev_time > self.health_recovery_delay:
+            self.prev_time = now
+            return True
+        
+    def check_game_over(self):
+        if self.health < 1:
+            self.game.object_renderer.game_over()
+            pygame.display.flip()
+            pygame.time.delay(1500)
+            self.game.new_game()
+        
+    def take_damage(self, damage):
+        self.health -= damage
+        self.game.object_renderer.player_damage()
+        self.game.sound.player_pain.play()
+        self.check_game_over()
         
     def fire_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -69,6 +96,7 @@ class Player:
     def update(self) -> None:
         self.movement()
         self.mouse_input()
+        self.recover_health()
         
     @property
     def loc(self) -> tuple[float, float]:

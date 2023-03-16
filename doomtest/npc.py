@@ -21,6 +21,7 @@ class NPC(AnimatedObjectSprite):
         self.line_of_sight = False
         self.frame_counter = 0
         self.player_search_trigger = False
+        self.attack_damage = 10
         
     def update(self):
         self.check_animation_time()
@@ -51,6 +52,8 @@ class NPC(AnimatedObjectSprite):
     def attack(self):
         if self.animation_trigger:
             self.game.sound.npc_attack.play()
+            if random() < self.accuracy:  # just like gamefreak used to do
+                self.game.player.take_damage(self.attack_damage)
         
     def animate_death(self):
         if not self.alive:
