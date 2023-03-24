@@ -6,6 +6,7 @@ import math
 
 TITLE = 'Floor It!'
 RESOLUTION = WIDTH, HEIGHT = 1024, 768
+HALF_WIDTH = WIDTH // 2
 HALF_HEIGHT = HEIGHT // 2
 FPS = 60
 ROAD_W = 2000
@@ -19,6 +20,8 @@ GRASS_LIGHT = pg.Color(16, 200, 16)
 GRASS_DARK = pg.Color(0, 154, 0)
 RUMBLE_LIGHT = pg.Color(255, 255, 255)
 RUMBLE_DARK = pg.Color(0, 0, 0)
+SPRITE_DESCALE = 250
+BG_TILES = 3
 
 class Line:
     def __init__(self) -> None:
@@ -31,22 +34,29 @@ class Line:
         self.color_rumble:pg.Color = 'black'
         
     def project(self, cam_x:int, cam_y:int, cam_z:int) -> None:
+        # camera depth scales the size of the xy-plane in focus (read: in view)
+        # this depth itself scales with distance between the line and the camera
         self.scale = CAM_D / (self.z - cam_z + 0.0001) # div/0 hazard
-        self.X = (1 + self.scale * (self.x - cam_x)) * WIDTH / 2
-        self.Y = (1 - self.scale * (self.y - cam_y)) * HEIGHT / 2
-        self.W = self.scale * ROAD_W * WIDTH / 2
+        # oversimplified: go to the center of the screen, (optional) turn around
+        # then go back (scale * delta x/y)% of the other half (or the original)
+        self.X = (1 + self.scale * (self.x - cam_x)) * HALF_WIDTH
+        self.Y = (1 - self.scale * (self.y - cam_y)) * HALF_HEIGHT
+        # road with is a constant, so that can be scaled in the same way
+        # i.e., (scale * width)% of half the screen
+        self.W = self.scale * ROAD_W * HALF_WIDTH
+        # note that big X is the CENTER of the line (big Y is the top)  
         
-    def draw_sprite(self, app:pg.Surface) -> None: # TODO: WHY?
+    def draw_sprite(self, app:pg.Surface) -> None:
         if self.sprite is None: return
         w = self.sprite.get_width()
         h = self.sprite.get_height()
-        dest_X = self.X + self.scale * self.sprite_X * WIDTH / 2
-        dest_Y = self.Y + 4
-        dest_W = w * self.W / 266
-        dest_H = h * self.W / 266
+        dest_X = self.X + self.scale * self.sprite_X * HALF_WIDTH # see project()
+        dest_Y = self.Y + 5
+        dest_W = w * self.W / SPRITE_DESCALE
+        dest_H = h * self.W / SPRITE_DESCALE
         dest_X += dest_W * self.sprite_X
         dest_Y -= dest_H
-        clip_H = dest_Y + dest_H - self.clip
+        clip_H = dest_Y + dest_H - self.clip # hills
         if clip_H < 0: clip_H = 0
         if clip_H >= dest_H: return
         if dest_W >= w: return
@@ -71,9 +81,14 @@ class Game:
         pg.display.set_caption(TITLE)
         self.screen = pg.display.set_mode(RESOLUTION)
         self.clock = pg.time.Clock()
+        self.bg_texture:pg.Surface = get_texture('bg.png', width=WIDTH)
+        self.bg_image:pg.Surface = pg.Surface((WIDTH * BG_TILES, self.bg_texture.get_height()))
+        for i in range(BG_TILES):
+            self.bg_image.blit(self.bg_texture, (WIDTH * i, 0))
+        self.bg_container:pg.Rect = self.bg_image.get_rect(topleft=(-WIDTH, 0))
+        self.screen.blit(self.bg_image, self.bg_container)
         # self.sprites:dict[str:pg.Surface] = {} # { filename : sprite }
-        self.sprite_bg:pg.Surface = get_texture('bg.png', width=WIDTH)
-        self.sprite_oak:pg.Surface = get_texture('oak.png')
+        self.sprite_tree:pg.Surface = get_texture('oak.png')
         self.lines:list[Line] = []
         for i in range(1600):
             line = Line()
@@ -88,10 +103,10 @@ class Game:
             # TODO: multiple scenery sprites
             if i % 20 == 0:
                 line.sprite_X = -2.5
-                line.sprite = self.sprite_oak
+                line.sprite = self.sprite_tree
             if i % 20 == 10:
                 line.sprite_X = 1.5
-                line.sprite = self.sprite_oak
+                line.sprite = self.sprite_tree
             self.lines.append(line)
         self.N = len(self.lines)
         self.N_scaled = self.N * SEG_L
@@ -105,30 +120,37 @@ class Game:
                 if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                     pg.quit()
                     sys.exit()
-            # TODO: turbo
+            speed = 0
             keys = pg.key.get_pressed()
+            if keys[pg.K_UP]: speed += SEG_L
+            if keys[pg.K_DOWN]: speed -= SEG_L
             if keys[pg.K_RIGHT]: self.player_x += 200
             if keys[pg.K_LEFT]: self.player_x -= 200
-            if keys[pg.K_UP]: self.pos += 200
-            if keys[pg.K_DOWN]: self.pos -= 200
-            # TODO: camera adjustment
-            # TODO: fill below bg for higher camera angles
-            self.screen.blit(self.sprite_bg, (0, 0))
+            if keys[pg.K_w]: self.player_y += 100
+            if keys[pg.K_s]: self.player_y -= 100
+            if self.player_y < 500: self.player_y = 500
+            if keys[pg.K_TAB]: speed *= 2
+            self.pos += speed
+            self.screen.fill((105, 205, 4)) # prefill so high camera doesn't look weird
+            self.screen.blit(self.bg_texture, (0, 0))
             self.pos %= self.N_scaled
             start_pos = self.pos // SEG_L
             end_pos = start_pos + 300
             x = dx = 0.0
             cam_h = self.player_y + self.lines[start_pos].y
             max_Y = HEIGHT
-            # TODO: turbo effect
-            # TODO: parallax
+            if speed > 0: self.bg_container.x -= self.lines[start_pos].curve * 2
+            elif speed < 0: self.bg_container.x += self.lines[start_pos].curve * 2
+            if self.bg_container.right < WIDTH: self.bg_container.x = -WIDTH
+            elif self.bg_container.left > 0: self.bg_container.x = -WIDTH
+            self.screen.blit(self.bg_image, self.bg_container)
             for n in range(start_pos, end_pos):
                 l = self.lines[n % self.N]
                 l.project(self.player_x - x, cam_h, self.pos - (self.N_scaled if n >= self.N else 0))
                 x += dx
                 dx += l.curve
                 l.clip = max_Y
-                if l.Y >= max_Y: continue
+                if l.Y >= max_Y: continue # hills
                 max_Y = l.Y
                 p = self.lines[(n - 1) % self.N]
                 draw_quad(self.screen, l.color_grass, 0, p.Y, WIDTH, 0, l.Y, WIDTH)
