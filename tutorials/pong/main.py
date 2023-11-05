@@ -16,6 +16,7 @@ PADDLE_W = 30
 PADDLE_H = 130
 MOVE_SPD = HEIGHT // 100 # 1% of screen
 BALL_SIZE = 20
+MAX_DIFF = (PADDLE_H // 2) - (BALL_SIZE // 2)
 
 def draw_rect(surface:pg.Surface, color:pg.Color, x:int, y:int, width:int, height:int) -> pg.Rect:
     """Draws a <width> by <height> rectangle (pygame.Rect) centered on <x>, <y>."""
@@ -83,7 +84,7 @@ class Game():
             # check for score
             if self.ball.x < 0 or self.ball.x > WIDTH:
                 print('Score!')
-                self.ball.reset_position(dx=((-1 if self.ball.x > WIDTH else 1) * MOVE_SPD))
+                self.ball.reset_position(dx=((-1 if self.ball.x > WIDTH else 1) * MOVE_SPD), dy=(self.ball.dy // MOVE_SPD))
 
             # player input
             keys = pg.key.get_pressed()
@@ -106,8 +107,10 @@ class Game():
             # collision detection: https://stackoverflow.com/a/65064907/3178898
             collision = pg.Rect(self.ball.collider).collideobjects(self.players, key=lambda go: go.collider)
             if collision:
-                self.ball.dx = -self.ball.dx
-                self.ball.dy += collision.dy
+                self.ball.dx = -1.1 * self.ball.dx # give it a 10% boost
+                y_diff = collision.y - self.ball.y
+                y_diff_scaled = y_diff / MAX_DIFF
+                self.ball.dy += y_diff_scaled * MOVE_SPD
                 self.ball.color = get_random_color()
 
             # boilerplate
