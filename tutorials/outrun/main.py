@@ -13,7 +13,7 @@ ROAD_W = 2000
 SEG_L = 200
 CAM_D = 0.84
 MAX_SCALE = 5
-TEXTURES_PATH = 'outruntest/textures/'
+TEXTURES_PATH = 'textures'
 ROAD_LIGHT = pg.Color(107, 107, 107)
 ROAD_DARK = pg.Color(105, 105, 105)
 GRASS_LIGHT = pg.Color(16, 200, 16)
@@ -69,8 +69,9 @@ def draw_quad(w:pg.Surface, c:pg.Color, x1:int, y1:int, w1:int, x2:int, y2:int, 
     pg.draw.polygon(surface=w, color=c, points=[(x1 - w1, y1),(x2 - w2, y2),(x2 + w2, y2),(x1 + w1, y1)])
 
 def get_texture(file:str, width:int = 0, height:int = 0) -> pg.Surface:
-        assert os.path.exists(TEXTURES_PATH)
-        texture = pg.image.load(os.path.join(TEXTURES_PATH, file)).convert_alpha()
+        target = os.path.join(os.path.abspath(os.path.dirname(__file__)), TEXTURES_PATH)
+        assert os.path.exists(target)
+        texture = pg.image.load(os.path.join(target, file)).convert_alpha()
         x = texture.get_width() if width == 0 else width
         y = texture.get_height() if height == 0 else height
         return pg.transform.scale(texture, (x, y))

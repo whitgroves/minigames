@@ -48,8 +48,9 @@ class ObjectRenderer:
         
     @staticmethod
     def get_texture(texture_file, res=(TEXTURE_SIZE, TEXTURE_SIZE)) -> pygame.Surface:
-        assert os.path.exists(TEXTURES_PATH)
-        texture = pygame.image.load(os.path.join(TEXTURES_PATH, texture_file)).convert_alpha()
+        target = os.path.join(os.path.abspath(os.path.dirname(__file__)), TEXTURES_PATH)
+        assert os.path.exists(target)
+        texture = pygame.image.load(os.path.join(target, texture_file)).convert_alpha()
         return pygame.transform.scale(texture, res)
     
     def load_wall_textures(self) -> dict:

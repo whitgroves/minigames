@@ -8,7 +8,10 @@ class ObjectSprite:
         self.game = game
         self.player = game.player
         self.x, self.y = loc
-        self.image = pygame.image.load(os.path.join(SPRITES_PATH, file)).convert_alpha()
+        images = deque()
+        target = os.path.join(os.path.abspath(os.path.dirname(__file__)), SPRITES_PATH)
+        assert os.path.exists(target)
+        self.image = pygame.image.load(os.path.join(target, file)).convert_alpha()
         self.IMAGE_WIDTH = self.image.get_width()
         self.HALF_IMAGE_WIDTH = self.IMAGE_WIDTH // 2
         self.IMAGE_RATIO = self.IMAGE_WIDTH / self.image.get_height()
@@ -76,8 +79,10 @@ class AnimatedObjectSprite(ObjectSprite):
         
     def get_images(self, folder):
         images = deque()
-        for filename in os.listdir(os.path.join(SPRITES_PATH, folder)):
-            filepath = os.path.join(SPRITES_PATH, folder, filename)
+        target = os.path.join(os.path.abspath(os.path.dirname(__file__)), SPRITES_PATH)
+        assert os.path.exists(target)
+        for filename in os.listdir(os.path.join(target, folder)):
+            filepath = os.path.join(target, folder, filename)
             if os.path.isfile(filepath):
                 img = pygame.image.load(filepath).convert_alpha()
                 images.append(img)

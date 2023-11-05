@@ -36,7 +36,7 @@ SCALE = WIDTH // NUM_RAYS  # scale up to display
 # textures
 TEXTURE_SIZE = 256
 HALF_TEXTURE_SIZE = TEXTURE_SIZE // 2
-TEXTURES_PATH = 'doomtest/textures/'
+TEXTURES_PATH = 'textures'
 
 # sprites
-SPRITES_PATH = 'doomtest/sprites/'
+SPRITES_PATH = 'sprites'

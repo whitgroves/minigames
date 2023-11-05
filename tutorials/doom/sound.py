@@ -5,7 +5,7 @@ class Sound:
     def __init__(self, game) -> None:
         self.game = game
         pygame.mixer.init()
-        self.base_path = 'doomtest/sounds/'
+        self.base_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'sounds')
         assert os.path.exists(self.base_path)
         self.shotgun = pygame.mixer.Sound(os.path.join(self.base_path, 'shotgun.wav'))
         self.npc_pain = pygame.mixer.Sound(os.path.join(self.base_path, 'npc_pain.wav'))
