@@ -48,10 +48,17 @@ class GameObject:
         self.y += self.dy
 
 class Player(GameObject):
-    def __init__(self, key_up:pg.key, key_dn:pg.key, **kwargs:dict) -> None:
+    def __init__(self, pid:int, key_up:pg.key, key_dn:pg.key, **kwargs:dict) -> None:
         super(Player, self).__init__(start_y=HALF_HEIGHT, width=PADDLE_W, height=PADDLE_H, **kwargs)
+        self.pid = pid
         self.key_up = key_up
         self.key_dn = key_dn
+
+    def update_position(self) -> None:
+        super().update_position()
+        offset = self.height // 2
+        self.y = max(self.y, offset)
+        self.y = min(self.y, (HEIGHT - offset))
 
 class Game():
     def __init__(self) -> None:
@@ -59,8 +66,8 @@ class Game():
         pg.display.set_caption(TITLE)
         self.screen = pg.display.set_mode(RESOLUTION)
         self.clock = pg.time.Clock()
-        self.players = [Player(start_x=L_MARGIN, key_up=pg.K_w, key_dn=pg.K_s),
-                        Player(start_x=R_MARGIN, key_up=pg.K_UP, key_dn=pg.K_DOWN)]
+        self.players = [Player(pid=0, start_x=L_MARGIN, key_up=pg.K_w, key_dn=pg.K_s),
+                        Player(pid=1, start_x=R_MARGIN, key_up=pg.K_UP, key_dn=pg.K_DOWN)]
         self.ball = GameObject(start_x=HALF_WIDTH, start_y=HALF_HEIGHT, width=BALL_SIZE, height=BALL_SIZE)
         self.ball.reset_position(dx=(random.choice([-1, 1]) * MOVE_SPD))
         self.game_objects = [self.ball, *self.players]
@@ -92,13 +99,16 @@ class Game():
                 go.update_position()
                 go.collider = draw_rect(self.screen, go.color, go.x, go.y, go.width, go.height)
 
-            # collision detection: https://stackoverflow.com/a/65064907/3178898
-            collision = self.ball.collider.collidelist([p.collider for p in self.players])
-            if collision > -1: # -1 = no collisions
-                self.ball.dx = -self.ball.dx
+            # vertical boundary for ball
+            if self.ball.y < 0 or self.ball.y > HEIGHT:
                 self.ball.dy = -self.ball.dy
+
+            # collision detection: https://stackoverflow.com/a/65064907/3178898
+            collision = pg.Rect(self.ball.collider).collideobjects(self.players, key=lambda go: go.collider)
+            if collision:
+                self.ball.dx = -self.ball.dx
+                self.ball.dy += collision.dy
                 self.ball.color = get_random_color()
-                print(collision)
 
             # boilerplate
             self.clock.tick(FPS)
