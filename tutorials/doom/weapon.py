@@ -16,7 +16,7 @@ class Weapon(AnimatedObjectSprite):
         if self.reloading:
             self.game.player.shooting = False
             if self.animation_trigger:
-                self.images.rotate(-1)  # TODO why?
+                self.images.rotate(-1) # send first animation frame to back of queue then get the next one
                 self.image = self.images[0]
                 self.frame_num += 1
                 if self.frame_num == self.num_images:

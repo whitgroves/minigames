@@ -10,7 +10,7 @@ class Pathfinding:
         self.build_graph()
         
     def get_path(self, start, goal):
-        self.visited = self.bread_first(start, goal, self.graph)
+        self.visited = self.breadcrumbs(start, goal, self.graph)
         path = [goal]
         step = self.visited.get(goal, start)
         while step and step != start:
@@ -18,8 +18,7 @@ class Pathfinding:
             step = self.visited[step]
         return path[-1]
         
-    # bread first ? wtf? well, insert usual TODO here
-    def bread_first(self, start, goal, graph):
+    def breadcrumbs(self, start, goal, graph):
         queue = deque([start])
         visited = {start: None}
         while queue:

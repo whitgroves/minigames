@@ -34,8 +34,8 @@ class ObjectRenderer:
         self.screen.blit(self.damage_screen, (0, 0))
         
     def draw_background(self):
-        # TODO: really understand why negative offset is being used here
-        self.sky_offset = (self.sky_offset + 4.5 * self.game.player.rel) % WIDTH  # why 4.5?
+        # offset is negative b/c blit() draws from left-to-right and we want to start drawing offscreen
+        self.sky_offset = (self.sky_offset + 4.5 * self.game.player.rel) % WIDTH # 4.5 just looks good, 5.5 works too
         self.screen.blit(self.sky_image, (-self.sky_offset, 0))
         self.screen.blit(self.sky_image, (-self.sky_offset + WIDTH, 0))
         pygame.draw.rect(self.screen, FLOOR_COLOR, (0, HALF_HEIGHT, WIDTH, HALF_HEIGHT))

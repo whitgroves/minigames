@@ -37,6 +37,7 @@ class ObjectSprite:
         self.theta = math.atan2(dy, dx)
         delta = self.theta - self.player.angle
         # TODO: figure out how/why everything below this line works
+        # https://youtu.be/ECqUrT7IdqQ?si=FWPyA0SyzY4Rp5FK&t=382
         if (dx > 0 and self.player.angle > math.pi) or (dx < 0 and dy < 0):
             delta += math.tau  
         delta_rays = delta / DELTA_ANGLE
@@ -54,9 +55,9 @@ class AnimatedObjectSprite(ObjectSprite):
     def __init__(self, game, file, loc, scale=1, offset=0, animation_time=60):
         super().__init__(game, file, loc, scale, offset)
         self.animation_time = animation_time
-        self.folder = file.rsplit('/', 1)[0]  # TODO: this in a way that I like
+        self.folder = file.rsplit('/', 1)[0]
         self.images = self.get_images(self.folder)
-        self.animation_time_prev = pygame.time.get_ticks()  # TODO: why?
+        self.animation_time_prev = pygame.time.get_ticks() # starting frame of reference
         self.animation_trigger = False
         
     def update(self):
@@ -69,8 +70,7 @@ class AnimatedObjectSprite(ObjectSprite):
             images.rotate(-1)
             self.image = images[0] 
         
-    def check_animation_time(self):
-        # resets the animation when it hits <animation_time> ticks
+    def check_animation_time(self): # reset the animation trigger so it can loop
         self.animation_trigger = False
         time_now = pygame.time.get_ticks()
         if time_now - self.animation_time_prev > self.animation_time:

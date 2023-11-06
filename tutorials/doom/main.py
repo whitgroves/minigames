@@ -23,7 +23,7 @@ class Game:
         self.delta_time = 1
         self.global_trigger = False
         self.global_event = pygame.USEREVENT + 0
-        pygame.time.set_timer(self.global_event, 40)
+        pygame.time.set_timer(self.global_event, 40) # triggers self.global_event every 40ms
         self.new_game()
     
     def new_game(self) -> None:
@@ -54,7 +54,7 @@ class Game:
         # self.player.draw()       
     
     def check_events(self) -> None:
-        self.global_trigger = False     # TODO: understand how the global and animation triggers work
+        self.global_trigger = False # used by some game objects to pace non-looped animations - see NPC.animate_death()
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 pygame.quit()
