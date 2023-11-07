@@ -1,11 +1,12 @@
 import math
 import pygame as pg
-from gameobject import *
 from settings import *
+from gameobject import *
+from projectile import *
 
 class Player(GameObject, UpdateMixin, RenderMixin):
     def __init__(self, game) -> None:
-        super(Player, self).__init__(game)
+        super().__init__(game)
         self.x = HALF_WIDTH
         self.y = HALF_HEIGHT
         self.angle = 0
@@ -23,6 +24,9 @@ class Player(GameObject, UpdateMixin, RenderMixin):
             y = HALF_HEIGHT + HALF_PLAYER * math.sin(point + self.angle)
             result.append((x, y))
         return result
+    
+    def fire_event(self) -> None:
+        p = Projectile(self.game, self.x, self.y, PROJ_SPD, (self.angle + TRIANGLE[0])) # it just works (tm)
 
     def update(self) -> None:
         keys = pg.key.get_pressed()
