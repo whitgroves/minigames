@@ -26,7 +26,7 @@ class Player(GameObject, UpdateMixin, RenderMixin):
         return result
     
     def fire_event(self) -> None:
-        p = Projectile(self.game, self.x, self.y, PROJ_SPD, (self.angle + TRIANGLE[0])) # it just works (tm)
+        p = Projectile(self.game, self.x, self.y, (self.angle + TRIANGLE[0])) # it just works (tm)
 
     def update(self) -> None:
         keys = pg.key.get_pressed()

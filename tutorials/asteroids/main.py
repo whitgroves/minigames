@@ -3,6 +3,7 @@ import pygame as pg
 from settings import *
 from gameobject import *
 from player import Player
+from asteroid import Asteroid, BigAsteroid
 
 class Game(GameObjectManager):
     def __init__(self) -> None:
@@ -15,6 +16,14 @@ class Game(GameObjectManager):
 
     def new_game(self) -> None:
         self.player = Player(self)
+        self.spawn_asteroid(x=QUTR_WIDTH, y=QUTR_HEIGHT)
+        self.spawn_asteroid(x=(HALF_WIDTH + QUTR_WIDTH), y=(HALF_HEIGHT + QUTR_HEIGHT), big=True)
+        
+    def get_asteroids(self) -> list[Asteroid]:
+        return [obj for obj in self.game_objects.values() if isinstance(obj, Asteroid)]
+    
+    def spawn_asteroid(self, x, y, big=False) -> Asteroid:
+        return BigAsteroid(self, x, y) if big else Asteroid(self, x, y)
 
     def events(self) -> None:
         for event in pg.event.get():
@@ -23,6 +32,11 @@ class Game(GameObjectManager):
                 sys.exit()
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 self.player.fire_event()
+            if event.type == BigAsteroid.DESTROYED: # can't spawn GameObjects during update()
+                x, y = event.dict['x'], event.dict['y']
+                self.spawn_asteroid(x-HALF_ASTEROID_SIZE, y)
+                self.spawn_asteroid(x+HALF_ASTEROID_SIZE, y+HALF_ASTEROID_SIZE)
+                self.spawn_asteroid(x+HALF_ASTEROID_SIZE, y-HALF_ASTEROID_SIZE)
  
     def update(self) -> None:
         [obj.update() for obj in self.game_objects.values() if isinstance(obj, UpdateMixin)]
