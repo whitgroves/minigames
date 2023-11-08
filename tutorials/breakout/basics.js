@@ -29,10 +29,30 @@ let y = canvas.height - 30;
 let dx = 2;
 let dy = -2;
 
+// function drawBall() {
+//     ctx.clearRect(0, 0, canvas.width, canvas.height);
+//     ctx.beginPath();
+//     ctx.arc(x, y, 10, 0, Math.PI * 2);
+//     ctx.fillStyle = "#0095DD";
+//     ctx.fill();
+//     ctx.closePath();
+// }
+
+// function draw() {
+//     drawBall();
+//     x += dx;
+//     y += dy;
+// }
+// setInterval(draw, 10);
+
+// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Bounce_off_the_walls
+
+const ballRadius = 10;
+
 function drawBall() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.beginPath();
-    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
     ctx.fillStyle = "#0095DD";
     ctx.fill();
     ctx.closePath();
@@ -40,9 +60,15 @@ function drawBall() {
 
 function draw() {
     drawBall();
+    if (x + dx < ballRadius || x + dx > canvas.width - ballRadius) {
+        dx = -dx;
+    }
+    if (y + dy < ballRadius || y + dy > canvas.height - ballRadius) {
+        dy = -dy;
+    }
     x += dx;
     y += dy;
 }
 setInterval(draw, 10);
 
-// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Bounce_off_the_walls
+// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Paddle_and_keyboard_controls
