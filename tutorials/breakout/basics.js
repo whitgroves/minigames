@@ -119,6 +119,35 @@ function drawPaddle() {
     ctx.closePath();
 }
 
+// function draw() {
+//     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+//     drawPaddle();
+//     drawBall();
+
+//     if (rightPressed) {
+//         paddleX = Math.min(paddleX + paddleSpeed, canvas.width - paddleWidth);
+//     } else if (leftPressed) {
+//         paddleX = Math.max(paddleX - paddleSpeed, 0);
+//     }
+
+//     if (x + dx < ballRadius || x + dx > canvas.width - ballRadius) {
+//         dx = -dx;
+//     }
+
+//     if (y + dy < ballRadius || y + dy > canvas.height - ballRadius) {
+//         dy = -dy;
+//     }
+
+//     x += dx;
+//     y += dy;
+// }
+// setInterval(draw, 10);
+
+// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Game_over
+
+const interval = setInterval(draw, 10);
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -135,13 +164,22 @@ function draw() {
         dx = -dx;
     }
 
-    if (y + dy < ballRadius || y + dy > canvas.height - ballRadius) {
+    if (y + dy < ballRadius) {
         dy = -dy;
+    } else if (y + dy > canvas.height - ballRadius) {
+        if (x > paddleX && x < paddleX + paddleWidth) {
+            dy = -dy;
+            dx *= 1.1;
+            dy *= 1.1;
+        } else {
+            alert("Game over, man, game over!")
+            document.location.reload();
+            clearInterval(interval); // ends game in chrome
+        }
     }
 
     x += dx;
     y += dy;
 }
-setInterval(draw, 10);
 
-// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Game_over
+// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Build_the_brick_field
