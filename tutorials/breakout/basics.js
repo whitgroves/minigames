@@ -49,26 +49,99 @@ let dy = -2;
 
 const ballRadius = 10;
 
+// function drawBall() {
+//     ctx.clearRect(0, 0, canvas.width, canvas.height);
+//     ctx.beginPath();
+//     ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+//     ctx.fillStyle = "#0095DD";
+//     ctx.fill();
+//     ctx.closePath();
+// }
+
+// function draw() {
+//     drawBall();
+//     if (x + dx < ballRadius || x + dx > canvas.width - ballRadius) {
+//         dx = -dx;
+//     }
+//     if (y + dy < ballRadius || y + dy > canvas.height - ballRadius) {
+//         dy = -dy;
+//     }
+//     x += dx;
+//     y += dy;
+// }
+// setInterval(draw, 10);
+
+// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Paddle_and_keyboard_controls
+
+const paddleHeight = 10;
+const paddleWidth = 75;
+let paddleX = (canvas.width - paddleWidth) / 2;
+let defaultColor = "#0095DD"
+
+let rightPressed = false;
+let leftPressed = false;
+let paddleSpeed = 7;
+
+document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keyup", keyUpHandler, false);
+
+function keyDownHandler(e) {
+    if (e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = true;
+    }
+    if (e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = true;
+    }
+}
+
+function keyUpHandler(e) {
+    if (e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = false;
+    }
+    if (e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = false;
+    }
+}
+
 function drawBall() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.beginPath();
     ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "#0095DD";
+    ctx.fillStyle = defaultColor;
+    ctx.fill();
+    ctx.closePath();
+}
+
+function drawPaddle() {
+    ctx.beginPath();
+    ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+    ctx.fillStyle = defaultColor;
     ctx.fill();
     ctx.closePath();
 }
 
 function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawPaddle();
     drawBall();
+
+    if (rightPressed) {
+        paddleX = Math.min(paddleX + paddleSpeed, canvas.width - paddleWidth);
+    } else if (leftPressed) {
+        paddleX = Math.max(paddleX - paddleSpeed, 0);
+    }
+
     if (x + dx < ballRadius || x + dx > canvas.width - ballRadius) {
         dx = -dx;
     }
+
     if (y + dy < ballRadius || y + dy > canvas.height - ballRadius) {
         dy = -dy;
     }
+
     x += dx;
     y += dy;
 }
 setInterval(draw, 10);
 
-// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Paddle_and_keyboard_controls
+// checkpoint: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Game_over
