@@ -30,7 +30,7 @@ class Game(GameObjectManager):
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 pg.quit()
                 sys.exit()
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+            if (event.type == pg.MOUSEBUTTONDOWN and event.button == 1) or (event.type == pg.KEYDOWN and event.key == pg.K_SPACE):
                 self.player.fire_event()
             if event.type == BigAsteroid.DESTROYED: # can't spawn GameObjects during update()
                 x, y = event.dict['x'], event.dict['y']

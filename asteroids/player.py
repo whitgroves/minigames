@@ -20,20 +20,17 @@ class Player(GameObject, UpdateMixin, RenderMixin):
         # inscribed upside-down and rotates clockwise with increases in theta.
         result = []
         for point in TRIANGLE:
-            x = HALF_WIDTH  + HALF_PLAYER * math.cos(point + self.angle)
-            y = HALF_HEIGHT + HALF_PLAYER * math.sin(point + self.angle)
+            x = self.x  + HALF_PLAYER * math.cos(point + self.angle)
+            y = self.y + HALF_PLAYER * math.sin(point + self.angle)
             result.append((x, y))
         return result
     
     def fire_event(self) -> None:
-        p = Projectile(self.game, self.x, self.y, (self.angle + TRIANGLE[0])) # it just works (tm)
+        Projectile(self.game, self.x, self.y, (self.angle - ROT_OFFSET))
 
     def update(self) -> None:
-        keys = pg.key.get_pressed()
-        if keys[pg.K_a]:
-            self.angle -= ROT_SPEED * self.game.delta_time
-        if keys[pg.K_d]:
-            self.angle += ROT_SPEED * self.game.delta_time
+        x, y = pg.mouse.get_pos()
+        self.angle = math.atan2(y-self.y, x-self.x) + ROT_OFFSET
         self.angle %= math.tau # bind to unit circle - [0, 2*pi]
 
     def render(self) -> None:

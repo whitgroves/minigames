@@ -15,6 +15,7 @@ HALF_PLAYER = PLAYER_SIZE // 2
 QUTR_PLAYER = HALF_PLAYER // 2
 ROT_UNIT = 0.0174533 # 1 degree in radians
 ROT_SPEED = 0.5 * ROT_UNIT
+ROT_OFFSET = math.pi / 2
 TRIANGLE = [(3 * math.pi / 2), (math.pi / 4), (3 * math.pi / 4)] # see Player._points()
 
 # projectile
