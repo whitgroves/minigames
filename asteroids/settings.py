@@ -17,6 +17,7 @@ ROT_UNIT = 0.0174533 # 1 degree in radians
 ROT_SPEED = 0.5 * ROT_UNIT
 ROT_OFFSET = math.pi / 2
 TRIANGLE = [(3 * math.pi / 2), (math.pi / 4), (3 * math.pi / 4)] # see Player._points()
+MAX_SPEED = 5
 
 # projectile
 PROJ_SPD = 5

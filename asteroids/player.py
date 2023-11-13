@@ -7,8 +7,10 @@ from projectile import *
 class Player(GameObject, UpdateMixin, RenderMixin):
     def __init__(self, game) -> None:
         super().__init__(game)
-        self.x = HALF_WIDTH
-        self.y = HALF_HEIGHT
+        self.loc = pg.Vector2(HALF_WIDTH, HALF_HEIGHT)
+        self.vel = pg.Vector2()
+        self.accel = 0.02
+        self.frict = 0.02
         self.angle = 0
 
     def _points(self):
@@ -20,18 +22,31 @@ class Player(GameObject, UpdateMixin, RenderMixin):
         # inscribed upside-down and rotates clockwise with increases in theta.
         result = []
         for point in TRIANGLE:
-            x = self.x  + HALF_PLAYER * math.cos(point + self.angle)
-            y = self.y + HALF_PLAYER * math.sin(point + self.angle)
+            x = self.loc.x  + HALF_PLAYER * math.cos(point + self.angle)
+            y = self.loc.y + HALF_PLAYER * math.sin(point + self.angle)
             result.append((x, y))
         return result
     
     def fire_event(self) -> None:
-        Projectile(self.game, self.x, self.y, (self.angle - ROT_OFFSET))
+        Projectile(self.game, self.loc.x, self.loc.y, (self.angle - ROT_OFFSET))
 
     def update(self) -> None:
         x, y = pg.mouse.get_pos()
-        self.angle = math.atan2(y-self.y, x-self.x) + ROT_OFFSET
+        self.angle = math.atan2(y-self.loc.y, x-self.loc.x) + ROT_OFFSET
         self.angle %= math.tau # bind to unit circle - [0, 2*pi]
+
+        keys = pg.key.get_pressed()
+        if keys[pg.K_SPACE]:
+            self.vel += pg.Vector2(math.cos(self.angle - ROT_OFFSET), math.sin(self.angle - ROT_OFFSET)) * self.accel * self.game.delta_time
+
+        self.vel *= 1 - self.frict
+        for axis in [self.vel.x, self.vel.y]:
+            axis = pg.math.clamp(axis, -MAX_SPEED, MAX_SPEED)
+            if axis < 0.0001: axis = 0
+
+        self.loc += self.vel
+        self.loc.x = pg.math.clamp(self.loc.x, 0, WIDTH)
+        self.loc.y = pg.math.clamp(self.loc.y, 0, HEIGHT)
 
     def render(self) -> None:
         pg.draw.aalines(self.game.screen, 'white', True, self._points(), 1)
