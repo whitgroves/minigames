@@ -1,5 +1,5 @@
 import math
-TITLE = 'Comets'
+TITLE = 'Blasteroids'
 
 # display
 RESOLUTION  = WIDTH, HEIGHT = 1024, 768

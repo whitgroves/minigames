@@ -13,18 +13,25 @@ class Game(GameObjectManager):
         self.screen = pg.display.set_mode(RESOLUTION)
         self.clock = pg.time.Clock()
         self.delta_time = 1
+        self.resetting = False
         self.new_game()
 
     def new_game(self) -> None:
         self.player = Player(self)
         self.asteroid_timer = 2500
         pg.time.set_timer(Game.SPAWN_ASTEROID, self.asteroid_timer)
-        # self.spawn_asteroid(x=0, y=QUTR_HEIGHT)
-        # self.spawn_asteroid(x=(HALF_WIDTH + QUTR_WIDTH), y=HEIGHT, size=1)
+
+    def game_over(self) -> None:
+        print('Game Over!')
+        self.resetting = True
+        for obj in self.game_objects.values():
+            obj.on_destroy()
+        self.new_game()
 
     SPAWN_ASTEROID = pg.event.custom_type()
 
     def spawn_asteroid(self, x:int, y:int, size:int=0, angle:float=None) -> Asteroid:
+        if self.resetting: self.resetting = False # now that's a tasty meatball
         match size:
             case 0:
                 return Asteroid(self, x, y, angle=angle)
@@ -33,15 +40,25 @@ class Game(GameObjectManager):
         
     def get_asteroids(self) -> list[Asteroid]:
         return [obj for obj in self.game_objects.values() if isinstance(obj, Asteroid)]
+    
+    def check_asteroid_collision(self, obj:GameObject) -> bool:
+        for asteroid in self.get_asteroids():
+            if asteroid.loc.x - asteroid.radius < obj.loc.x < asteroid.loc.x + asteroid.radius and \
+               asteroid.loc.y - asteroid.radius < obj.loc.y < asteroid.loc.y + asteroid.radius:
+                asteroid.on_destroy()
+                return True
+        return False
 
     def events(self) -> None:
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 pg.quit()
                 sys.exit()
+            if event.type == Player.GAME_OVER:
+                self.game_over()
             if (event.type == pg.MOUSEBUTTONDOWN and event.button == 1):
                 self.player.fire_event()
-            if event.type == BigAsteroid.DESTROYED: # can't spawn GameObjects during update()
+            if event.type == BigAsteroid.DESTROYED and not self.resetting: # can't spawn GameObjects during update()
                 x, y, a = event.dict['x'], event.dict['y'],event.dict['a']
                 self.spawn_asteroid(x-HALF_ASTEROID_SIZE, y, angle=a)
                 self.spawn_asteroid(x+HALF_ASTEROID_SIZE, y+HALF_ASTEROID_SIZE, angle=a)
@@ -55,7 +72,7 @@ class Game(GameObjectManager):
                     y = random.choice([0, HEIGHT])
                 self.spawn_asteroid(x, y, size=(random.randint(0, 1)))
                 # every time an asteroid is spawned, the next one will be spawned on a decreasing trigger
-                self.asteroid_timer -= 10
+                self.asteroid_timer -= 25
                 pg.time.set_timer(Game.SPAWN_ASTEROID, self.asteroid_timer)
  
     def update(self) -> None:

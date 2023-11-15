@@ -1,8 +1,9 @@
+import pygame as pg
 from settings import *
 
 class GameObjectManager:
     def __init__(self) -> None:
-        self.game_objects = dict[GameObject]()
+        self.game_objects = dict[int, GameObject]()
         self.next_object_id = 0
         self.cleanup_ids = []
 
@@ -27,14 +28,16 @@ class GameObjectManager:
 
 class GameObject:
     def __init__(self, game:GameObjectManager, x:int=HALF_WIDTH, y:int=HALF_HEIGHT) -> None:
-        self.x = x
-        self.y = y
+        self.loc = pg.Vector2(x, y)
         self.game = game
         self.obj_id = self.game.register(self)
 
+    def on_destroy(self) -> None:
+        self.game.deregister(self.obj_id)
+
     @property
     def in_bounds(self) -> bool:
-        return 0 <= self.x <= WIDTH and 0 <= self.y <= HEIGHT
+        return 0 <= self.loc.x <= WIDTH and 0 <= self.loc.y <= HEIGHT
 
 class UpdateMixin:
     def update(self) -> None:

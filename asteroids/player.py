@@ -30,6 +30,8 @@ class Player(GameObject, UpdateMixin, RenderMixin):
     def fire_event(self) -> None:
         Projectile(self.game, self.loc.x, self.loc.y, (self.angle - ROT_OFFSET))
 
+    GAME_OVER = pg.event.custom_type()
+
     def update(self) -> None:
         x, y = pg.mouse.get_pos()
         self.angle = math.atan2(y-self.loc.y, x-self.loc.x) + ROT_OFFSET
@@ -40,7 +42,6 @@ class Player(GameObject, UpdateMixin, RenderMixin):
             self.vel += pg.Vector2(math.cos(self.angle - ROT_OFFSET), math.sin(self.angle - ROT_OFFSET)) * self.accel * self.game.delta_time
 
         self.vel *= 1 - self.frict
-        # max_speed = MAX_SPEED * self.game.delta_time
         for dv in [self.vel.x, self.vel.y]:
             dv = pg.math.clamp(dv, -MAX_SPEED, MAX_SPEED)
             if dv < 0.0001: dv = 0
@@ -48,6 +49,10 @@ class Player(GameObject, UpdateMixin, RenderMixin):
         self.loc += self.vel
         self.loc.x = pg.math.clamp(self.loc.x, 0, WIDTH)
         self.loc.y = pg.math.clamp(self.loc.y, 0, HEIGHT)
+
+        if self.game.check_asteroid_collision(self):
+            pg.event.post(pg.event.Event(Player.GAME_OVER, {'x':self.loc.x, 'y':self.loc.y}))
+            super().on_destroy()
 
     def render(self) -> None:
         pg.draw.aalines(self.game.screen, 'white', True, self._points(), 1)
