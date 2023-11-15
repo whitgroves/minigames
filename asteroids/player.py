@@ -40,9 +40,10 @@ class Player(GameObject, UpdateMixin, RenderMixin):
             self.vel += pg.Vector2(math.cos(self.angle - ROT_OFFSET), math.sin(self.angle - ROT_OFFSET)) * self.accel * self.game.delta_time
 
         self.vel *= 1 - self.frict
-        for axis in [self.vel.x, self.vel.y]:
-            axis = pg.math.clamp(axis, -MAX_SPEED, MAX_SPEED)
-            if axis < 0.0001: axis = 0
+        # max_speed = MAX_SPEED * self.game.delta_time
+        for dv in [self.vel.x, self.vel.y]:
+            dv = pg.math.clamp(dv, -MAX_SPEED, MAX_SPEED)
+            if dv < 0.0001: dv = 0
 
         self.loc += self.vel
         self.loc.x = pg.math.clamp(self.loc.x, 0, WIDTH)

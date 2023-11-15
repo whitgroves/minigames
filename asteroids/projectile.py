@@ -15,8 +15,8 @@ class Projectile(GameObject, UpdateMixin, RenderMixin):
         if not self.in_bounds:
             self.game.deregister(self.obj_id)
         else:
-            self.x += self.dx
-            self.y += self.dy
+            self.x += self.dx * self.game.delta_time
+            self.y += self.dy * self.game.delta_time
             for asteroid in self.game.get_asteroids():
                 if asteroid.x - asteroid.radius < self.x < asteroid.x + asteroid.radius and \
                    asteroid.y - asteroid.radius < self.y < asteroid.y + asteroid.radius:

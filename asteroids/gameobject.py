@@ -19,7 +19,10 @@ class GameObjectManager:
 
     def cleanup(self) -> None:
         for obj_id in self.cleanup_ids:
-            del self.game_objects[obj_id]
+            try:
+                del self.game_objects[obj_id]
+            except:
+                continue
         self.cleanup_ids = []
 
 class GameObject:
