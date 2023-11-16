@@ -1,4 +1,6 @@
 import math
+import pygame as pg
+
 TITLE = 'Blasteroids'
 
 # display
@@ -8,6 +10,7 @@ HALF_HEIGHT = HEIGHT // 2
 QUTR_WIDTH  = HALF_WIDTH//2
 QUTR_HEIGHT = HALF_HEIGHT//2
 FPS = 60
+FONT_SIZE = 32
 
 # player
 PLAYER_SIZE = 32 # player is inscribed in a circle
