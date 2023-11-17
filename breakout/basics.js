@@ -103,7 +103,7 @@ function keyUpHandler(e) {
     }
 }
 
-function drawBall() {
+function drawCircle() {
     ctx.beginPath();
     ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
     ctx.fillStyle = defaultColor;
@@ -146,7 +146,7 @@ function drawPaddle() {
 
 // checkpoint (5/10): https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Game_over
 
-const interval = setInterval(draw, 10);
+const interval = setInterval(run, 10);
 
 // function draw() {
 //     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -216,12 +216,12 @@ function drawBricks() {
     }
 }
 
-function draw() {
+function run() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawBricks();
     drawPaddle();
-    drawBall();
+    drawCircle();
 
     if (rightPressed) {
         paddleX = Math.min(paddleX + paddleSpeed, canvas.width - paddleWidth);
