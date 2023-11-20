@@ -9,10 +9,12 @@ const ctx = canvas.getContext('2d');
 // constants (SETTINGS)
 const HALF_W = canvas.width / 2;
 const HALF_H = canvas.height / 2;
+const FPS = 60
+const TIME_STEP = 1000 / FPS;
 
 const TRIANGLE = [(3 * Math.PI / 2), (Math.PI / 4), (3 * Math.PI / 4)];
 const PLAYER_R = 16 // player radius (reminder: this is only HALF the player size)
-const PLAYER_V = 4 // player max vel
+const PLAYER_V = 8 // player max vel
 const T_OFFSET = Math.PI / 2; // theta offset for player rotations; consequence of triangle pointing along y-axis
 
 const DEF_COLOR = '#FFF'
@@ -20,12 +22,17 @@ const DEF_COLOR = '#FFF'
 // I know libraries for this exist but sometimes you want a scoop of vanilla
 class Vector2 {
   constructor(x=0, y=0) {
-    this.update(x, y);
+    this.set(x, y);
   }
 
-  update(x, y, scale=1) {
-    this.x = x * scale;
-    this.y = y * scale;
+  set(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  add(x, y, scale=1) {
+    this.x += x * scale;
+    this.y += y * scale;
   }
 
   apply(func) {
@@ -35,7 +42,8 @@ class Vector2 {
 }
 
 class GameObject {
-  constructor(loc=new Vector2()) {
+  constructor(game, loc=new Vector2()) {
+    this.game = game;
     this.loc = loc;
   }
 
@@ -52,26 +60,22 @@ class GameObject {
 }
 
 class Player extends GameObject {
-  constructor() {
-    super(new Vector2(HALF_W, HALF_H));
+  constructor(game) {
+    super(game, new Vector2(HALF_W, HALF_H));
     this.vel = new Vector2();
-    this.accel = 5; //0.02;
-    this.frict = 0.05; //0.02;
+    this.accel = 0.02;
+    this.frict = 0.015;
     this.theta = 0;
-    document.addEventListener('mousemove', this.onMouseMove);
-    document.addEventListener('keydown', this.onKeyDown);
+    this.target = null;
+    this.boosting = false;
+    this.registerEvents();
   }
 
-  onMouseMove = (event) => {
-    this.theta = Math.atan2(event.y-this.loc.y, event.x-this.loc.x) + T_OFFSET;
-    this.theta %= 2 * Math.PI; // radians
-  }
-
-  onKeyDown = (event) => {
-    if (event.key === ' ') {
-      this.vel.update(Math.cos(this.theta-T_OFFSET), Math.sin(this.theta-T_OFFSET), this.accel);
-    }
-    // elif ... projectile keybinding
+  // generally, event sets an update flag, then response is handled during update() loop
+  // done this way so we aren't trying to do trig every time the mouse moves or a key is pressed
+  registerEvents = () => {
+    document.addEventListener('mousemove', (event) => this.target = new Vector2(event.x, event.y));
+    document.addEventListener('keydown', (event) => this.boosting = true);
   }
 
   _safeUpdateVelocity = (v) => {
@@ -81,14 +85,23 @@ class Player extends GameObject {
     return v;
   }
 
-  update() {
+  update = () => {
+    if (this.target) { 
+      this.theta = Math.atan2(this.target.y-this.loc.y, this.target.x-this.loc.x) + T_OFFSET;
+      this.theta %= 2 * Math.PI; // radians
+      this.target = null;
+    }
+    if (this.boosting) {
+      this.vel.add(Math.cos(this.theta-T_OFFSET), Math.sin(this.theta-T_OFFSET), this.accel * this.game.deltaTime);
+      this.boosting = false;
+    }
     this.vel.apply(this._safeUpdateVelocity);
     this.loc.x = Math.max(0, Math.min(this.loc.x + this.vel.x, canvas.width));
     this.loc.y = Math.max(0, Math.min(this.loc.y + this.vel.y, canvas.height));
-    // check for asteroid collisions and initiate game over if so
+    // TODO: check for asteroid collisions and initiate game over if so
   }
 
-  render() {
+  render = () => {
     var points = [];
     TRIANGLE.forEach(point => {
       var x = this.loc.x + PLAYER_R * Math.cos(point + this.theta);
@@ -101,56 +114,60 @@ class Player extends GameObject {
 
 class Game {
   constructor() {
-    // screen setup (see top of file)
-    // setup clock object for game loop
-    this.deltaTime = 1;
+    this.lastTick = 0; // last time run() was executed
+    this.deltaTime = 0; 
     this.newGame();
-    // set font for UI
-    this.run = this.run.bind(this); // https://stackoverflow.com/q/4011793/3178898
+    // TODO: set font for UI
   }
 
-  newGame() {
+  newGame = () => {
     this.gameOver = false;
     this.score = 0;
     this.player = new Player(this);
-    // set timer for the next asteroid to spawn
+    // TODO set timer for the next asteroid to spawn
   }
 
-  reset() {
+  reset = () => {
     // loop through game objects and destroy them
     this.newGame();
   }
 
-  // spawn asteroid event object (may not exist for JS)
+  spawnAsteroid = (x, y, size, angle) => {} // TODO spawn in asteroids (use JS approach for spawn event)
 
-  spawnAsteroid(x, y, size, angle) {} // spawn in asteroids
+  getAsteroids = () => {} // TODO get all of the asteroids being tracked by the game
 
-  getAsteroids() {} // get all of the asteroids being tracked by the game
-
-  checkAsteroidCollision(gameObj) {
+  checkAsteroidCollision = (gameObj) => {
     // loop through asteroids in this object and see if any overlap with gameObj
     // if they do, the asteroid is destroyed, score is increased and returns true.
     // returns false otherwise.
     return false;
   }
 
-  events() {} // event loop for handling inputs. may not be needed for JS
-
-  update() {
+  update = () => {
     this.player.update();
   }
 
-  render() {
+  render = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     this.player.render();
   } 
 
-  run() {
-    this.events();
-    this.update();
+  // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing
+  run = (timestamp) => {
+    this.deltaTime += timestamp - this.lastTick;
+    this.lastTick = timestamp;
+    var updatesThisLoop = 0;
+    while (this.deltaTime >= TIME_STEP) {
+      this.update();
+      this.deltaTime -= TIME_STEP;
+      if (++updatesThisLoop > 300) { // if updates are taking too long, panic and bail
+        console.log('...at the disco')
+        this.deltaTime = 0;
+        break;
+      }
+    }
     this.render();
-    // cleanup deregistered gameObjects
-    requestAnimationFrame(this.run); // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing
+    requestAnimationFrame(this.run);
   }
 }
 
