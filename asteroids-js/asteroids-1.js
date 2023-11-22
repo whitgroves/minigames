@@ -25,6 +25,25 @@ const ROCK_V = 0.3; // asteroid speed
 
 const LINE_COLOR = '#FFF' 
 
+
+tracePoints = (points, enclose=true) => {
+  ctx.beginPath();
+  ctx.strokeStyle = LINE_COLOR;
+  if (enclose) ctx.moveTo(points[points.length-1].x, points[points.length-1].y);
+  points.forEach(point => { ctx.lineTo(point.x, point.y) });
+  ctx.stroke();
+  ctx.closePath();
+}
+
+randomChoice = (choices) => { // https://stackoverflow.com/q/9071573/3178898
+  let i = Math.floor(Math.random() * choices.length);
+  return choices[i];
+}
+
+randomVal = (max, min) => { // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+  return Math.random() * (max - min) + min;
+}
+
 // I know libraries for this exist but sometimes you want a scoop of vanilla
 class Vector2 {
   constructor(x=0, y=0, scale=1) {
@@ -45,23 +64,16 @@ class Vector2 {
   copy = () => { return new Vector2(this.x, this.y) } // TIL JS is sometimes pass by reference
 }
 
-tracePoints = (points, enclose=true) => {
-  ctx.beginPath();
-  ctx.strokeStyle = LINE_COLOR;
-  if (enclose) ctx.moveTo(points[points.length-1].x, points[points.length-1].y);
-  points.forEach(point => { ctx.lineTo(point.x, point.y) });
-  ctx.stroke();
-  ctx.closePath();
-}
-
 class GameObject {
-  constructor(game, loc=null, vel=null) {
+  constructor(game, loc=null, vel=null, radius=1) {
     this.game = game;
     this.loc = loc ? loc.copy() : new Vector2();
     this.vel = vel ? vel.copy() : new Vector2();
     this.objId = this.game.register(this);
+    this.radius = radius;
   }
-  inBounds = () => { return 0 < this.loc.x && this.loc.x < canvas.width && 0 < this.loc.y && this.loc.y < canvas.height }
+  inBounds = () => { return -this.radius < this.loc.x && this.loc.x < canvas.width+this.radius 
+                        && -this.radius < this.loc.y && this.loc.y < canvas.height+this.radius }
   update = () => {} // virtual
   render = () => {} // virtual
   destroy = () => { this.game.deregister(this.objId) }
@@ -85,6 +97,7 @@ class Player extends GameObject {
     this.accel = 0.02;
     this.frict = 0.02;
     this.theta = 0;
+    this.radius = PLAYER_R;
     this.target = null;
     this.boosting = false;
     this.registerInputs();
@@ -139,8 +152,8 @@ class Player extends GameObject {
   render = () => {
     var points = [];
     TRIANGLE.forEach(point => {
-      var x = this.loc.x + PLAYER_R * Math.cos(point + this.theta);
-      var y = this.loc.y + PLAYER_R * Math.sin(point + this.theta);
+      var x = this.loc.x + this.radius * Math.cos(point + this.theta);
+      var y = this.loc.y + this.radius * Math.sin(point + this.theta);
       points.push(new Vector2(x, y));
     });
     tracePoints(points);
@@ -152,6 +165,7 @@ class Asteroid extends GameObject {
     super(game, loc);
     this.theta = theta ? theta % 2 * Math.PI : Math.atan2(loc.y-game.player.loc.y, loc.x-game.player.loc.x); // by default, head towards player
     this.vel.set(Math.cos(this.theta), Math.sin(this.theta), ROCK_V);
+    this.radius = ROCK_R;
     this.isAsteroid = true; // in reality this can be anything so long as the property exists
   }
   update = () => {
@@ -164,8 +178,8 @@ class Asteroid extends GameObject {
   render = () => {
     var points = [];
     OCTAGON.forEach(point => {
-      var x = this.loc.x + ROCK_R * Math.cos(point + this.theta);
-      var y = this.loc.y + ROCK_R * Math.sin(point + this.theta);
+      var x = this.loc.x + this.radius * Math.cos(point + this.theta);
+      var y = this.loc.y + this.radius * Math.sin(point + this.theta);
       points.push(new Vector2(x, y));
     });
     tracePoints(points);
@@ -215,8 +229,17 @@ class Game {
 
   spawnAsteroid = (size) => { // spawns a new asteroid on a decreasing timer
     if (!this.gameOver) {
+      let x = null;
+      let y = null;
+      if (randomChoice([true, false])) { 
+        x = randomChoice([0, canvas.width]);
+        y = randomVal(0, canvas.height);
+      } else {
+        x = randomVal(0, canvas.width);
+        y = randomChoice([0, canvas.height]);
+      }
       switch (size) {
-        case 0: new Asteroid(this, new Vector2(1000, 400));
+        case 0: new Asteroid(this, new Vector2(x, y));
         // case 1: new BigAsteroid(this, loc, theta);
       }
       if (this.asteroidTimer > 250) this.asteroidTimer -= 25;
