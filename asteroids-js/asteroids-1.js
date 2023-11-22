@@ -64,7 +64,7 @@ class Player extends GameObject {
     super(game, new Vector2(HALF_W, HALF_H));
     this.vel = new Vector2();
     this.accel = 0.02;
-    this.frict = 0.015;
+    this.frict = 0.02;
     this.theta = 0;
     this.target = null;
     this.boosting = false;
@@ -75,13 +75,14 @@ class Player extends GameObject {
   // done this way so we aren't trying to do trig every time the mouse moves or a key is pressed
   registerEvents = () => {
     document.addEventListener('mousemove', (event) => this.target = new Vector2(event.x, event.y));
-    document.addEventListener('keydown', (event) => this.boosting = true);
+    document.addEventListener('keydown', (event) => this.boosting = event.key === ' ');
+    document.addEventListener('keyup', (event) => this.boosting = !event.key === ' ');
   }
 
   _safeUpdateVelocity = (v) => {
-    v *= (1 - this.frict);
-    v = Math.max(-PLAYER_V, Math.min(v, PLAYER_V));
-    if (Math.abs(v) < 0.0001) v = 0;
+    v *= (1 - this.frict)
+    v = Math.max(-PLAYER_V, Math.min(v, PLAYER_V));            
+    if (Math.abs(v) < 0.001) v = 0;
     return v;
   }
 
@@ -91,11 +92,9 @@ class Player extends GameObject {
       this.theta %= 2 * Math.PI; // radians
       this.target = null;
     }
-    if (this.boosting) {
-      this.vel.add(Math.cos(this.theta-T_OFFSET), Math.sin(this.theta-T_OFFSET), this.accel * this.game.deltaTime);
-      this.boosting = false;
-    }
+    if (this.boosting) this.vel.add(Math.cos(this.theta-T_OFFSET), Math.sin(this.theta-T_OFFSET), this.accel * this.game.deltaTime);
     this.vel.apply(this._safeUpdateVelocity);
+    console.log(this.vel);
     this.loc.x = Math.max(0, Math.min(this.loc.x + this.vel.x, canvas.width));
     this.loc.y = Math.max(0, Math.min(this.loc.y + this.vel.y, canvas.height));
     // TODO: check for asteroid collisions and initiate game over if so

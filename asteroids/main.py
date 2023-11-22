@@ -6,6 +6,8 @@ from gameobject import *
 from player import Player
 from asteroid import Asteroid, BigAsteroid
 
+# TODO: https://stackoverflow.com/a/5458250/3178898
+
 class Game(GameObjectManager):
     def __init__(self) -> None:
         super().__init__()
