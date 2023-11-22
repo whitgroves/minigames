@@ -38,14 +38,10 @@ class Game(GameObjectManager):
                 return Asteroid(self, x, y, angle=angle)
             case 1:
                 return BigAsteroid(self, x, y, angle=angle)
-        
-    def get_asteroids(self) -> list[Asteroid]:
-        return [obj for obj in self.game_objects.values() if isinstance(obj, Asteroid)]
     
     def check_asteroid_collision(self, obj:GameObject) -> bool:
-        for asteroid in self.get_asteroids():
-            if asteroid.loc.x - asteroid.radius < obj.loc.x < asteroid.loc.x + asteroid.radius and \
-               asteroid.loc.y - asteroid.radius < obj.loc.y < asteroid.loc.y + asteroid.radius:
+        for asteroid in [obj for obj in self.game_objects.values() if isinstance(obj, Asteroid)]:
+            if abs(asteroid.loc.x-obj.loc.x) < asteroid.radius and abs(asteroid.loc.y-obj.loc.y) < asteroid.radius:
                 asteroid.on_destroy()
                 self.score += 1
                 return True
@@ -75,7 +71,7 @@ class Game(GameObjectManager):
                         y = random.choice([0, HEIGHT])
                     self.spawn_asteroid(x, y, size=(random.randint(0, 1)))
                     # every time an asteroid is spawned, the next one will be spawned on a decreasing trigger
-                    self.asteroid_timer -= 25
+                    if self.asteroid_timer > 250: self.asteroid_timer -= 25
                     pg.time.set_timer(Game.SPAWN_ASTEROID, self.asteroid_timer)
             else:
                 if (event.type == pg.MOUSEBUTTONDOWN and event.button == 1) or \
