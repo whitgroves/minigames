@@ -16,53 +16,72 @@ const TRIANGLE = [(3 * Math.PI / 2), (Math.PI / 4), (3 * Math.PI / 4)];
 const PLAYER_R = 16 // player radius (reminder: this is only HALF the player size)
 const PLAYER_V = 8 // player max vel
 const T_OFFSET = Math.PI / 2; // theta offset for player rotations; consequence of triangle pointing along y-axis
+const PROJ_SPD = 1; // projectile speed
 
 const DEF_COLOR = '#FFF'
 
 // I know libraries for this exist but sometimes you want a scoop of vanilla
 class Vector2 {
-  constructor(x=0, y=0) {
-    this.set(x, y);
+  constructor(x=0, y=0, scale=1) {
+    this.set(x, y, scale);
   }
 
-  set(x, y) {
-    this.x = x;
-    this.y = y;
+  set = (x, y, scale=1) => {
+    this.x = x * scale;
+    this.y = y * scale;
   }
 
-  add(x, y, scale=1) {
+  add = (x, y, scale=1) => {
     this.x += x * scale;
     this.y += y * scale;
   }
 
-  apply(func) {
+  apply = (func) => {
     this.x = func(this.x);
     this.y = func(this.y);
   }
 }
 
+tracePoints = (points, enclose=true) => {
+  ctx.beginPath();
+  ctx.strokeStyle = DEF_COLOR;
+  if (enclose) ctx.moveTo(points[points.length-1].x, points[points.length-1].y);
+  points.forEach(point => {
+    ctx.lineTo(point.x, point.y);
+  });
+  ctx.stroke();
+  ctx.closePath();
+}
+
 class GameObject {
-  constructor(game, loc=new Vector2()) {
+  constructor(game, loc=new Vector2(), vel=new Vector2()) {
     this.game = game;
     this.loc = loc;
+    this.vel = vel;
+    this.objId = this.game.register(this);
   }
+  inBounds() { return 0 <= this.loc.x <= canvas.width && 0 <= this.loc.y <= canvas.height }
+  update() {} // virtual
+  render() {} // virtual
+  destroy() { this.game.deregister(this.objId) }
+}
 
-  tracePoints = (points, enclose=true) => {
-    ctx.beginPath();
-    ctx.strokeStyle = DEF_COLOR;
-    if (enclose) ctx.moveTo(points[points.length-1].x, points[points.length-1].y);
-    points.forEach(point => {
-      ctx.lineTo(point.x, point.y);
-    });
-    ctx.stroke();
-    ctx.closePath();
+class Projectile extends GameObject {
+  constructor(game, loc, theta) { super(game, loc, new Vector2(Math.cos(theta), Math.sin(theta), PROJ_SPD)) }
+  update = () => {
+    if (this.inBounds()) {
+      this.loc.add(this.vel.x, this.vel.y, this.game.deltaTime);
+      // TODO check asteroid collision
+    } else {
+      this.destroy();
+    }
   }
+  render = () => { tracePoints([this.loc, new Vector2(this.loc.x-this.vel.x, this.loc.y-this.vel.y)], false) }
 }
 
 class Player extends GameObject {
   constructor(game) {
     super(game, new Vector2(HALF_W, HALF_H));
-    this.vel = new Vector2();
     this.accel = 0.02;
     this.frict = 0.02;
     this.theta = 0;
@@ -77,6 +96,11 @@ class Player extends GameObject {
     document.addEventListener('mousemove', (event) => this.target = new Vector2(event.x, event.y));
     document.addEventListener('keydown', (event) => this.boosting = event.key === ' ');
     document.addEventListener('keyup', (event) => this.boosting = !event.key === ' ');
+    document.addEventListener('mousedown', this._fireProjectile);
+  }
+
+  _fireProjectile = (event) => {
+    this.game.register(new Projectile(this.game, new Vector2(this.loc.x, this.loc.y), this.theta-T_OFFSET)); // TIL JS is sometimes pass by reference
   }
 
   _safeUpdateVelocity = (v) => {
@@ -94,7 +118,6 @@ class Player extends GameObject {
     }
     if (this.boosting) this.vel.add(Math.cos(this.theta-T_OFFSET), Math.sin(this.theta-T_OFFSET), this.accel * this.game.deltaTime);
     this.vel.apply(this._safeUpdateVelocity);
-    console.log(this.vel);
     this.loc.x = Math.max(0, Math.min(this.loc.x + this.vel.x, canvas.width));
     this.loc.y = Math.max(0, Math.min(this.loc.y + this.vel.y, canvas.height));
     // TODO: check for asteroid collisions and initiate game over if so
@@ -107,16 +130,35 @@ class Player extends GameObject {
       var y = this.loc.y + PLAYER_R * Math.sin(point + this.theta);
       points.push(new Vector2(x, y));
     });
-    this.tracePoints(points);
+    tracePoints(points);
   }
 }
 
 class Game {
   constructor() {
     this.lastTick = 0; // last time run() was executed
-    this.deltaTime = 0; 
+    this.deltaTime = 0;
+    this.gameObjects = new Map();
+    this.nextObjectId = 0;
+    this.cleanupIds = [];
     this.newGame();
     // TODO: set font for UI
+  }
+
+  register = (gameObj) => {
+    this.gameObjects.set(++this.nextObjectId, gameObj);
+    return this.nextObjectId;
+  }
+
+  deregister = (objId) => {
+    this.cleanupIds.push(objId);
+  }
+
+  cleanup = () => {
+    this.cleanupIds.forEach((objId) => {
+      delete this.gameObjects[objId];
+    });
+    this.cleanupIds = [];
   }
 
   newGame = () => {
@@ -143,12 +185,16 @@ class Game {
   }
 
   update = () => {
-    this.player.update();
+    this.gameObjects.forEach((gameObj) => {
+      gameObj.update();
+    });
   }
 
   render = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.player.render();
+    this.gameObjects.forEach((gameObj) => {
+      gameObj.render(); 
+    });
   } 
 
   // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing
@@ -159,7 +205,7 @@ class Game {
     while (this.deltaTime >= TIME_STEP) {
       this.update();
       this.deltaTime -= TIME_STEP;
-      if (++updatesThisLoop > 300) { // if updates are taking too long, panic and bail
+      if (++updatesThisLoop > 251) { // if updates are taking too long, panic and bail
         console.log('...at the disco')
         this.deltaTime = 0;
         break;
@@ -167,6 +213,7 @@ class Game {
     }
     this.render();
     requestAnimationFrame(this.run);
+    this.cleanup();
   }
 }
 
