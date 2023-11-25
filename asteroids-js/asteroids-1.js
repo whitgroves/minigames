@@ -36,7 +36,6 @@ tracePoints = (points, enclose=true) => {
 }
 
 displayText = (text, x, y) => {
-  console.log(text);
   ctx.font = '30px Mono';
   ctx.fillStyle = LINE_COLOR;
   ctx.fillText(text, x, y);
@@ -275,6 +274,8 @@ class Game {
     this.gameObjects.forEach((gameObj) => {
       gameObj.render(); 
     });
+    displayText('Score: '+this.score, 10, 40);
+    if (this.gameOver) displayText('GAME OVER', this.player.loc.x, this.player.loc.y);
     displayText('Score: '+this.score, 10, 40);
     if (this.gameOver) displayText('GAME OVER', this.player.loc.x, this.player.loc.y);
   } 
