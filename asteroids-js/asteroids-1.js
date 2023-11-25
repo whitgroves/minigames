@@ -35,6 +35,13 @@ tracePoints = (points, enclose=true) => {
   ctx.closePath();
 }
 
+displayText = (text, x, y) => {
+  console.log(text);
+  ctx.font = '30px Mono';
+  ctx.fillStyle = LINE_COLOR;
+  ctx.fillText(text, x, y);
+}
+
 randomChoice = (choices) => { // https://stackoverflow.com/q/9071573/3178898
   let i = Math.floor(Math.random() * choices.length);
   return choices[i];
@@ -145,7 +152,6 @@ class Player extends GameObject {
       this.game.gameOver = true;
       this.destroy();
       this.deregisterInputs();
-      console.log('GAME OVER');
     }
   }
 
@@ -196,7 +202,6 @@ class Game {
     this.newGame();
     this.paused = false;
     document.addEventListener('keydown', (event) => this.paused = event.key === 'Escape' && !this.paused);
-    // TODO: set font for UI
   }
 
   register = (gameObj) => {
@@ -248,7 +253,6 @@ class Game {
   }
 
   checkAsteroidCollision = (collisionObj) => {
-    // for (let i = 0; i < this.gameObjects.size; i++) { // https://stackoverflow.com/a/34653650/3178898
     for (const k of this.gameObjects.keys()) {
       let gameObj = this.gameObjects.get(k);
       if ('isAsteroid' in gameObj && Math.abs(collisionObj.loc.x-gameObj.loc.x) < ROCK_R && Math.abs(collisionObj.loc.y-gameObj.loc.y) < ROCK_R) {
@@ -271,6 +275,8 @@ class Game {
     this.gameObjects.forEach((gameObj) => {
       gameObj.render(); 
     });
+    displayText('Score: '+this.score, 10, 40);
+    if (this.gameOver) displayText('GAME OVER', this.player.loc.x, this.player.loc.y);
   } 
 
   // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing
@@ -290,8 +296,6 @@ class Game {
       }
       this.render();
       this.cleanup();
-    // } else {
-    //   console.log('paused');
     }
     requestAnimationFrame(this.run);
   }
