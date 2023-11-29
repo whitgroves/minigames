@@ -16,6 +16,13 @@ const OCTAGON = [0, (Math.PI / 4), (Math.PI / 2), (3 * Math.PI / 4), Math.PI, (5
 const ROCK_R = 32; // asteroid radius
 const ROCK_V = 0.3; // asteroid speed
 
+getWindowStyle = (attribute) => { return window.getComputedStyle(document.body).getPropertyValue(attribute).slice(0, -2) }
+
+resizeCanvas = () => { // https://stackoverflow.com/questions/4037212/html-canvas-full-screen
+  canvas.width = window.innerWidth - getWindowStyle('margin-left') - getWindowStyle('margin-right'); 
+  canvas.height = window.innerHeight - getWindowStyle('margin-bottom') - getWindowStyle('margin-top');
+}
+
 tracePoints = (points, enclose=true) => {
   ctx.beginPath();
   ctx.strokeStyle = LINE_COLOR;
@@ -74,7 +81,6 @@ class GameObject {
 
 class Projectile extends GameObject {
   constructor(game, loc, theta) { super(game, loc, new Vector2(Math.cos(theta), Math.sin(theta), PROJ_V)) }
-  
   update = () => {
     if (this.inBounds() && !this.game.checkAsteroidCollision(this)) {
       this.loc.add(this.vel.x, this.vel.y, this.game.deltaTime);
@@ -82,12 +88,12 @@ class Projectile extends GameObject {
       this.destroy();
     }
   }
-
   render = () => { tracePoints([this.loc, new Vector2(this.loc.x-this.vel.x, this.loc.y-this.vel.y)], false) }
 }
 
 class Player extends GameObject {
   constructor(game) {
+    resizeCanvas(); // ensure player ALWAYS spawns at mid-screen
     super(game, new Vector2(canvas.width/2, canvas.height/2));
     this.accel = 0.02;
     this.frict = 0.02;
@@ -106,14 +112,12 @@ class Player extends GameObject {
     document.addEventListener('keyup', this._boostOff);
     document.addEventListener('mousedown', this._fireProjectile);
   }
-
   deregisterInputs = () => {
     document.removeEventListener('mousemove', this._acquireTarget);
     document.removeEventListener('keydown', this._boostOn);
     document.removeEventListener('keyup', this._boostOff);
     document.removeEventListener('mousedown', this._fireProjectile);
   }
-
   _acquireTarget = (event) => { this.target = new Vector2(event.x, event.y) }
   _boostOn = (event) => { this.boosting = event.key === ' ' }
   _boostOff = (event) => { this.boosting = !event.key === ' ' }
@@ -125,7 +129,6 @@ class Player extends GameObject {
     if (Math.abs(v) < 0.001) v = 0;
     return v;
   }
-
   update = () => {
     // rotate towards mouse
     if (this.target) { 
@@ -145,7 +148,6 @@ class Player extends GameObject {
       this.deregisterInputs();
     }
   }
-
   render = () => {
     var points = [];
     TRIANGLE.forEach(point => {
@@ -165,7 +167,6 @@ class Asteroid extends GameObject {
     this.radius = ROCK_R;
     this.isAsteroid = true; // in reality this can be anything so long as the property exists
   }
-  
   update = () => {
     if (this.inBounds()) {
       this.loc.add(this.vel.x, this.vel.y, -this.game.deltaTime); // scaled negative to move inward on spawn
@@ -173,7 +174,6 @@ class Asteroid extends GameObject {
       this.destroy();
     }
   }
-
   render = () => {
     var points = [];
     OCTAGON.forEach(point => {
@@ -271,8 +271,7 @@ class Game {
   update = () => { this.gameObjects.forEach((gameObj) => { gameObj.update() }) }
 
   render = () => {
-    canvas.width = window.innerWidth; // https://stackoverflow.com/questions/4037212/html-canvas-full-screen
-    canvas.height = window.innerHeight; // done on each game loop in case the window is resized
+    resizeCanvas(); // done each frame in case the window is resized
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     this.gameObjects.forEach((gameObj) => {
       gameObj.render(); 
