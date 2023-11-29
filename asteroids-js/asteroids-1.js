@@ -1,30 +1,20 @@
-// https://stackoverflow.com/questions/4037212/html-canvas-full-screen
 const canvas = document.getElementById('mainCanvas');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-// in python this is stored on the game object, but this isn't python
 const ctx = canvas.getContext('2d');
 
-// constants (SETTINGS)
-const HALF_W = canvas.width / 2;
-const HALF_H = canvas.height / 2;
+// constants 
 const FPS = 60
 const TIME_STEP = 1000 / FPS;
+const LINE_COLOR = '#FFF'
 
 const TRIANGLE = [(3 * Math.PI / 2), (Math.PI / 4), (3 * Math.PI / 4)];
 const PLAYER_R = 16 // player radius (reminder: this is only HALF the player size)
 const PLAYER_V = 12 // player max vel
 const T_OFFSET = Math.PI / 2; // theta offset for player rotations; consequence of triangle pointing along y-axis
-
 const PROJ_V = 1; // projectile speed
 
 const OCTAGON = [0, (Math.PI / 4), (Math.PI / 2), (3 * Math.PI / 4), Math.PI, (5 * Math.PI / 4), (3 * Math.PI / 2), (7 * Math.PI / 4)];
 const ROCK_R = 32; // asteroid radius
 const ROCK_V = 0.3; // asteroid speed
-
-const LINE_COLOR = '#FFF' 
-
 
 tracePoints = (points, enclose=true) => {
   ctx.beginPath();
@@ -46,12 +36,9 @@ randomChoice = (choices) => { // https://stackoverflow.com/q/9071573/3178898
   return choices[i];
 }
 
-randomVal = (max, min) => { // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
-  return Math.random() * (max - min) + min;
-}
+randomVal = (max, min) => { return Math.random() * (max - min) + min }
 
-// I know libraries for this exist but sometimes you want a scoop of vanilla
-class Vector2 {
+class Vector2 { // I know libraries for this exist but sometimes you want a scoop of vanilla
   constructor(x=0, y=0, scale=1) {
     this.set(x, y, scale);
   }
@@ -87,6 +74,7 @@ class GameObject {
 
 class Projectile extends GameObject {
   constructor(game, loc, theta) { super(game, loc, new Vector2(Math.cos(theta), Math.sin(theta), PROJ_V)) }
+  
   update = () => {
     if (this.inBounds() && !this.game.checkAsteroidCollision(this)) {
       this.loc.add(this.vel.x, this.vel.y, this.game.deltaTime);
@@ -94,12 +82,13 @@ class Projectile extends GameObject {
       this.destroy();
     }
   }
+
   render = () => { tracePoints([this.loc, new Vector2(this.loc.x-this.vel.x, this.loc.y-this.vel.y)], false) }
 }
 
 class Player extends GameObject {
   constructor(game) {
-    super(game, new Vector2(HALF_W, HALF_H));
+    super(game, new Vector2(canvas.width/2, canvas.height/2));
     this.accel = 0.02;
     this.frict = 0.02;
     this.theta = 0;
@@ -109,8 +98,8 @@ class Player extends GameObject {
     this.registerInputs();
   }
 
-  // generally, event sets an update flag, then response is handled during update() loop
-  // done this way so we aren't trying to do trig every time the mouse moves or a key is pressed
+  // generally, each event sets an update flag, then the response is handled during update()
+  // otherwise we'd stall the game doing trig on every mouse move or keypress
   registerInputs = () => {
     document.addEventListener('mousemove', this._acquireTarget);
     document.addEventListener('keydown', this._boostOn);
@@ -138,15 +127,18 @@ class Player extends GameObject {
   }
 
   update = () => {
+    // rotate towards mouse
     if (this.target) { 
       this.theta = Math.atan2(this.target.y-this.loc.y, this.target.x-this.loc.x) + T_OFFSET;
       this.theta %= 2 * Math.PI; // radians
       this.target = null;
     }
+    // apply velocity
     if (this.boosting) this.vel.add(Math.cos(this.theta-T_OFFSET), Math.sin(this.theta-T_OFFSET), this.accel * this.game.deltaTime);
     this.vel.apply(this._safeUpdateVelocity);
     this.loc.x = Math.max(0, Math.min(this.loc.x + this.vel.x, canvas.width));
     this.loc.y = Math.max(0, Math.min(this.loc.y + this.vel.y, canvas.height));
+    // collision check
     if (this.game.checkAsteroidCollision(this)) {
       this.game.gameOver = true;
       this.destroy();
@@ -173,13 +165,15 @@ class Asteroid extends GameObject {
     this.radius = ROCK_R;
     this.isAsteroid = true; // in reality this can be anything so long as the property exists
   }
+  
   update = () => {
     if (this.inBounds()) {
-      this.loc.add(this.vel.x, this.vel.y, -this.game.deltaTime);
+      this.loc.add(this.vel.x, this.vel.y, -this.game.deltaTime); // scaled negative to move inward on spawn
     } else {
       this.destroy();
     }
   }
+
   render = () => {
     var points = [];
     OCTAGON.forEach(point => {
@@ -195,14 +189,11 @@ class Game {
   constructor() {
     this.lastTick = 0; // last time run() was executed
     this.deltaTime = 0;
-    this.gameObjects = new Map();
     this.nextObjectId = -1; // will increment to 0 on first registration
     this.cleanupIds = [];
     this.newGame();
-    this.paused = false;
-    this.pauseTime = null;
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !this.gameOver){
+      if (!this.gameOver && event.key === 'Escape'){
         this.paused = !this.paused;
         if (this.paused) {
           cancelAnimationFrame(this.frameReq);
@@ -214,7 +205,9 @@ class Game {
           this.lastTick += (Date.now() - this.pauseTime);
           this.spawnAsteroid(0);
           this.frameReq = requestAnimationFrame(this.run);
-        }
+        } 
+      } else if (this.gameOver && event.key === 'Enter') {
+        this.newGame();    
       }
     });
     this.frameReq = requestAnimationFrame(this.run);
@@ -225,27 +218,22 @@ class Game {
     return this.nextObjectId;
   }
 
-  deregister = (objId) => {
-    this.cleanupIds.push(objId);
-  }
+  deregister = (objId) => { this.cleanupIds.push(objId) }
 
   cleanup = () => {
-    this.cleanupIds.forEach((objId) => {
-      this.gameObjects.delete(objId);
-    });
+    this.cleanupIds.forEach((objId) => { this.gameObjects.delete(objId) });
     this.cleanupIds = [];
   }
 
   newGame = () => {
+    this.paused = false;
+    this.pauseTime = null;
     this.gameOver = false;
     this.score = 0;
+    this.gameObjects = new Map(); // clear stray asteroids before player spawns
     this.player = new Player(this);
     this.timeToImpact = 2500;
     this.spawnAsteroid(0);
-  }
-
-  reset = () => { // loop through game objects and destroy them
-    this.newGame();
   }
 
   spawnAsteroid = (size) => { // spawns a new asteroid on a decreasing timer
@@ -280,13 +268,11 @@ class Game {
     return false;
   }
 
-  update = () => {
-    this.gameObjects.forEach((gameObj) => {
-      gameObj.update();
-    });
-  }
+  update = () => { this.gameObjects.forEach((gameObj) => { gameObj.update() }) }
 
   render = () => {
+    canvas.width = window.innerWidth; // https://stackoverflow.com/questions/4037212/html-canvas-full-screen
+    canvas.height = window.innerHeight; // done on each game loop in case the window is resized
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     this.gameObjects.forEach((gameObj) => {
       gameObj.render(); 
@@ -295,8 +281,7 @@ class Game {
     if (this.gameOver) displayText('GAME OVER', this.player.loc.x, this.player.loc.y);
   } 
 
-  // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing
-  run = (timestamp) => {
+  run = (timestamp) => { // https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing
     if (!this.paused) {
       this.deltaTime += timestamp - this.lastTick;
       this.lastTick = timestamp;
@@ -312,7 +297,6 @@ class Game {
       }
       this.render();
       this.cleanup();
-      
     }
     this.frameReq = requestAnimationFrame(this.run);
   }
