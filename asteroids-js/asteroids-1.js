@@ -200,7 +200,24 @@ class Game {
     this.cleanupIds = [];
     this.newGame();
     this.paused = false;
-    document.addEventListener('keydown', (event) => this.paused = event.key === 'Escape' && !this.paused);
+    this.pauseTime = null;
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !this.gameOver){
+        this.paused = !this.paused;
+        if (this.paused) {
+          cancelAnimationFrame(this.frameReq);
+          clearTimeout(this.asteroidTimer);
+          this.pauseTime = Date.now();
+          displayText('GAME PAUSED', this.player.loc.x, this.player.loc.y);
+        }
+        else {
+          this.lastTick += (Date.now() - this.pauseTime);
+          this.spawnAsteroid(0);
+          this.frameReq = requestAnimationFrame(this.run);
+        }
+      }
+    });
+    this.frameReq = requestAnimationFrame(this.run);
   }
 
   register = (gameObj) => {
@@ -223,7 +240,7 @@ class Game {
     this.gameOver = false;
     this.score = 0;
     this.player = new Player(this);
-    this.asteroidTimer = 2500;
+    this.timeToImpact = 2500;
     this.spawnAsteroid(0);
   }
 
@@ -246,8 +263,8 @@ class Game {
         case 0: new Asteroid(this, new Vector2(x, y));
         // case 1: new BigAsteroid(this, loc, theta);
       }
-      if (this.asteroidTimer > 250) this.asteroidTimer -= 25;
-      setTimeout(this.spawnAsteroid, this.asteroidTimer, 0);
+      if (this.timeToImpact > 250) this.timeToImpact -= 25;
+      this.asteroidTimer = setTimeout(this.spawnAsteroid, this.timeToImpact, 0);
     }
   }
 
@@ -274,9 +291,7 @@ class Game {
     this.gameObjects.forEach((gameObj) => {
       gameObj.render(); 
     });
-    displayText('Score: '+this.score, 10, 40);
-    if (this.gameOver) displayText('GAME OVER', this.player.loc.x, this.player.loc.y);
-    displayText('Score: '+this.score, 10, 40);
+    displayText(this.score, 10, 40);
     if (this.gameOver) displayText('GAME OVER', this.player.loc.x, this.player.loc.y);
   } 
 
@@ -297,10 +312,10 @@ class Game {
       }
       this.render();
       this.cleanup();
+      
     }
-    requestAnimationFrame(this.run);
+    this.frameReq = requestAnimationFrame(this.run);
   }
 }
 
 var game = new Game();
-requestAnimationFrame(game.run);
