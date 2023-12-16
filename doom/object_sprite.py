@@ -36,8 +36,6 @@ class ObjectSprite:
         self.dx, self.dy = dx, dy
         self.theta = math.atan2(dy, dx)
         delta = self.theta - self.player.angle
-        # TODO: figure out how/why everything below this line works
-        # https://youtu.be/ECqUrT7IdqQ?si=FWPyA0SyzY4Rp5FK&t=382
         if (dx > 0 and self.player.angle > math.pi) or (dx < 0 and dy < 0):
             delta += math.tau  
         delta_rays = delta / DELTA_ANGLE

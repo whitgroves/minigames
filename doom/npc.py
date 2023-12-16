@@ -69,7 +69,6 @@ class NPC(AnimatedObjectSprite):
         
     def check_if_hit(self):
         if self.line_of_sight and self.game.player.shooting:
-            # TODO: understand why self.screen_x is used here
             if HALF_WIDTH - self.half_width < self.screen_x < HALF_WIDTH + self.half_width:
                 self.game.sound.npc_pain.play()
                 self.game.player.shooting = False
